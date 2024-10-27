@@ -1,0 +1,52 @@
+---
+- name: Создание резервной копии конфигурационных файлов
+  hosts: all
+  become: yes
+  vars:
+    backup_dir: "/tmp/config_backup"
+    nginx_conf_dir: "/etc/nginx"
+    nginx_conf_file: "nginx.conf"
+    nginx_sites_available_dir: "/etc/nginx/sites-available"
+    nginx_sites_available_files:
+      - "default"
+    config_files:
+      RedHat_Rocky:
+        - "{{ nginx_conf_dir }}/{{ nginx_conf_file }}"
+        - "{{ nginx_sites_available_dir }}/{{ item }}"
+      Debian:
+        - "{{ nginx_conf_dir }}/{{ nginx_conf_file }}"
+        - "{{ nginx_sites_available_dir }}/{{ item }}"
+  tasks:
+    - name: Проверка наличия каталога для резервных копий
+      ansible.builtin.stat:
+        path: "{{ backup_dir }}"
+      register: backup_dir_check
+
+    - name: Создание каталога для резервных копий, если его нет
+      ansible.builtin.file:
+        path: "{{ backup_dir }}"
+        state: directory
+      when: not backup_dir_check.stat.exists
+
+    - name: Проверка наличия каталога sites-available
+      ansible.builtin.stat:
+        path: "{{ nginx_sites_available_dir }}"
+      register: sites_available_check
+      ignore_errors: yes
+
+    - name: Создание резервных копий конфигурационных файлов Nginx
+      ansible.builtin.backup:
+        src: "{{ item }}"
+        dest: "{{ backup_dir }}"
+      loop: "{{ config_files[ansible_os_family] }}"
+      when: 
+        - nginx_sites_available_dir.stat.exists | default(false)
+        - ansible_os_family == 'RedHat' or ansible_distribution == 'Rocky'
+        - ansible_os_family == 'Debian'
+      ignore_errors: yes
+
+    - name: Вывод сообщения об отсутствующем каталоге sites-available
+      ansible.builtin.debug:
+        msg: "Каталог {{ nginx_sites_available_dir }} не существует. Резервные копии конфигурационных файлов не созданы."
+      when: sites_available_check.stat.exists == false
+      ignore_errors: yes

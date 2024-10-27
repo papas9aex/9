@@ -1,0 +1,86 @@
+---
+- name: "Install NGiNX"
+  hosts: NGINX
+  become: true
+
+  tasks:
+
+  - name: Install prerequisites
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - curl
+      - gnupg2
+      - ca-certificates
+      - lsb-release
+    when:
+      ansible_os_family == "Debian"
+
+  - name: Add an Apt signing key to a specific keyring file
+    ansible.builtin.apt_key:
+      id: 573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62
+      url: https://nginx.org/keys/nginx_signing.key
+      keyring: /usr/share/keyrings/nginx-archive-keyring.gpg
+    when:
+      ansible_os_family == "Debian"
+
+  - name: nginx official repo | apt source
+    ansible.builtin.apt_repository:
+      filename: nginx
+      repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/ubuntu {{ ansible_distribution_release }} nginx"
+      update_cache: true
+      mode: "0644"
+      state: present
+    when:
+      ansible_os_family == "Debian"
+
+  - name: repository pinning to prefer to nginx official packages over distribution packages
+    ansible.builtin.blockinfile:
+      path: /etc/apt/preferences.d/99nginx
+      create: true
+      block: |
+        Package: *
+        Pin: origin nginx.org
+        Pin: release o=nginx
+        Pin-Priority: 900
+      mode: "0644"
+      state: present
+    when:
+      ansible_os_family == "Debian"
+
+  - name: Update package list
+    apt:
+      update_cache: yes
+    when:
+      ansible_os_family == "Debian"
+
+  - name: Install NGINX
+    apt:
+      name: nginx
+      state: present
+    when:
+      ansible_os_family == "Debian"
+
+  - name: Start and enable nginx  service
+    service:
+      name: nginx
+      state: started
+      enabled: yes
+    when:
+      ansible_os_family == "Debian"
+
+  - name: Install Nginx Web Server on RedHat Family
+    yum:
+      name=nginx
+      state=latest
+    when:
+      ansible_os_family == "RedHat"
+
+  - name: Start and enable nginx  service
+    service:
+      name: nginx
+      state: started
+      enabled: yes
+    when:
+      ansible_os_family == "RedHat"

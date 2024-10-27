@@ -1,0 +1,17 @@
+---
+- name: Deploy application from Git repository
+  hosts: APACHE
+  become: yes
+
+  tasks:
+    - name: Install Git on Debian
+      apt:
+        name: git
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install Git on RedHat
+      yum:
+        name: git
+        state: present
+      when: ansible_os_family == "RedHat"

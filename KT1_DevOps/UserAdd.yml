@@ -1,0 +1,31 @@
+---
+- name: Add a new user and grant sudo access
+  hosts: all
+  become: yes
+  vars:
+    new_username: sysadmin
+    new_user_password: "p-0"
+    sudoers_group: sudo
+
+  tasks:
+
+    - name: Ensure the sudoers group exists
+      group:
+        name: "{{ sudoers_group }}"
+        state: present
+
+    - name: Add the new user
+      user:
+        name: "{{ new_username }}"
+        groups: adm,sudo
+        state: present
+        shell: /bin/bash
+        createhome: yes
+        password: "{{ new_user_password | password_hash('sha512') }}"
+
+    - name: Add the new user to sudoers
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: "^%{{ sudoers_group }}"
+        line: "%{{ sudoers_group }} ALL=(ALL) NOPASSWD:ALL"

@@ -1,0 +1,68 @@
+---
+- name: Configure firewall rules
+  hosts: all
+  become: yes
+  vars:
+    redhat_firewall_service: firewalld
+    ubuntu_firewall_service: ufw
+    allowed_ports_redhat:
+      - 22
+      - 80
+      - 81
+      - 443
+    allowed_ports_ubuntu:
+      - 22
+      - 80
+      - 81
+      - 443
+
+  tasks:
+    - name: Install firewalld on Red Hat/Rocky Linux
+      package:
+        name: firewalld
+        state: present
+      when: ansible_distribution in ['RedHat', 'Rocky']
+
+    - name: Install ufw on Ubuntu
+      package:
+        name: ufw
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Ensure firewalld service is started (Red Hat/Rocky Linux)
+      service:
+        name: firewalld
+        state: started
+      when: ansible_distribution in ['RedHat', 'Rocky']
+
+    - name: Ensure ufw is enabled and started (Ubuntu)
+      service:
+        name: ufw
+        enabled: yes
+        state: started
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Allow necessary ports on Red Hat/Rocky Linux
+      shell: firewall-cmd --permanent --zone=public --add-port={{ item }}/tcp
+      loop: "{{ allowed_ports_redhat }}"
+      when: ansible_distribution in ['RedHat', 'Rocky']
+      notify: restart firewalld
+
+    - name: Allow necessary ports on Ubuntu
+      shell: ufw allow {{ item }}
+      loop: "{{ allowed_ports_ubuntu }}"
+      when: ansible_distribution == 'Ubuntu'
+      notify: restart ufw
+
+  handlers:
+    - name: restart firewalld
+      service:
+        name: firewalld
+        state: restarted
+      when: ansible_distribution in ['RedHat', 'Rocky']
+
+    - name: restart ufw
+      service:
+        name: ufw
+        state: restarted
+      when: ansible_distribution == 'Ubuntu'

@@ -1,0 +1,10 @@
+db_user: app1user
+db_password: app1user
+db_name: app1
+postgresql_version: "13"  # Замените значение на актуальную версию PostgreSQL на вашем хосте
+postgres_password: "app1user"
+postgresql_port: 5432  # Adjust the port number according to your PostgreSQL configuration
+postgresql_service_redhat: postgresql
+postgresql_service_ubuntu: postgresql
+postgresql_user_password: "app1user"
+postgres_user: app1user

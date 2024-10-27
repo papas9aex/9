@@ -1,0 +1,101 @@
+---
+- name: Управление службами и переменными среды
+  hosts: all
+  become: yes
+  vars:
+    service_state: "started"  
+    debian_services:
+      - name: nginx
+        dir: "/etc/nginx"
+      - name: apache2
+        dir: "/etc/apache2"
+      - name: postgresql
+        dir: "/etc/postgresql"
+    redhat_services:
+      - name: nginx
+        dir: "/etc/nginx"
+      - name: httpd
+        dir: "/etc/httpd"
+      - name: postgresql
+        dir: "/etc/postgresql"
+    debian_env_file: "/home/user/.environment_variable_service"
+    redhat_env_file: "/etc/environment"
+    redhat_profile_file: "/etc/profile"
+    redhat_bashrc_file: "/etc/bashrc"
+    redhat_sysconfig_file: "/etc/sysconfig"
+    environment_variable_service: "your_environment_variable_service"  
+    environment_variable: "YOUR_VARIABLE"  
+    environment_variable_state: "started"  
+
+  tasks:
+    - name: Управление службами на Debian
+      service:
+        name: "{{ item.name }}"
+        state: "{{ service_state }}"
+      loop: "{{ debian_services }}"
+      when: ansible_os_family == 'Debian'
+      ignore_errors: yes
+
+    - name: Управление службами на RedHat
+      service:
+        name: "{{ item.name }}"
+        state: "{{ service_state }}"
+      loop: "{{ redhat_services }}"
+      when: ansible_os_family == 'RedHat'
+      ignore_errors: yes
+
+    - name: Обновление файла переменных среды на Debian
+      lineinfile:
+        path: "{{ debian_env_file }}"
+        line: "export {{ environment_variable }}={{ environment_variable_state }}"
+        create: yes
+      when: ansible_os_family == 'Debian'
+      ignore_errors: yes
+
+    - name: Обновление файла переменных среды на RedHat
+      lineinfile:
+        path: "{{ redhat_env_file }}"
+        line: "{{ environment_variable }}={{ environment_variable_state }}"
+        create: yes
+      when: ansible_os_family == 'RedHat'
+      ignore_errors: yes
+
+    - name: Добавление переменных среды в /etc/profile на RedHat
+      lineinfile:
+        path: "{{ redhat_profile_file }}"
+        line: "export {{ environment_variable }}={{ environment_variable_state }}"
+        insertafter: EOF
+      when: ansible_os_family == 'RedHat'
+      ignore_errors: yes
+
+    - name: Добавление переменных среды в /etc/bashrc на RedHat
+      lineinfile:
+        path: "{{ redhat_bashrc_file }}"
+        line: "export {{ environment_variable }}={{ environment_variable_state }}"
+        insertafter: EOF
+      when: ansible_os_family == 'RedHat'
+      ignore_errors: yes
+
+    - name: Добавление переменных среды в /etc/sysconfig на RedHat
+      lineinfile:
+        path: "{{ redhat_sysconfig_file }}"
+        line: "{{ environment_variable }}={{ environment_variable_state }}"
+        insertafter: EOF
+      when: ansible_os_family == 'RedHat'
+      ignore_errors: yes
+
+    - name: Добавление переменных среды в .bashrc на Debian
+      lineinfile:
+        dest: "$HOME/.bashrc"
+        line: "export {{ environment_variable }}={{ environment_variable_state }}"
+        insertafter: EOF
+      when: ansible_os_family == 'Debian'
+      ignore_errors: yes
+
+    - name: Добавление переменных среды в .bash_profile на Debian
+      lineinfile:
+        dest: "$HOME/.bash_profile"
+        line: "export {{ environment_variable }}={{ environment_variable_state }}"
+        insertafter: EOF
+      when: ansible_os_family == 'Debian'
+      ignore_errors: yes
